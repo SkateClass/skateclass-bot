@@ -3,13 +3,13 @@ const { Telegraf, session, Markup } = require('telegraf');
 
 const bot = new Telegraf(process.env.TELEGRAM_TOKEN);
 const ADMIN_ID = parseInt(process.env.ADMIN_ID);
+const CHANNEL_ID = 1301102683;
 
 bot.use(session());
 
 // ✅ ПРАВИЛЬНАЯ УСТАНОВКА КОМАНД - /admin видна только админу
 async function setAdminCommands() {
   try {
-    // Команды для админа (только ADMIN_ID видит /admin)
     await bot.telegram.setMyCommands(
       [
         { command: 'menu', description: '☰ Главное меню' },
@@ -21,7 +21,6 @@ async function setAdminCommands() {
       { scope: { type: 'chat', chat_id: ADMIN_ID } }
     );
     
-    // Команды для всех остальных пользователей
     await bot.telegram.setMyCommands(
       [
         { command: 'menu', description: '☰ Главное меню' },
@@ -174,7 +173,7 @@ bot.command('join_channel', async (ctx) => {
 
   try {
     await bot.telegram.sendMessage(
-      '@skateclass',
+      CHANNEL_ID,
       '✅ Бот @Skateclass_bot подключен к каналу и готов отправлять сообщения!'
     );
     
@@ -193,7 +192,7 @@ bot.command('post_menu_button', async (ctx) => {
 
   try {
     const sentMessage = await bot.telegram.sendMessage(
-      '@skateclass',
+      CHANNEL_ID,
       '🤖 *ЗАПИСАТЬСЯ НА ЗАНЯТИЯ*\n\n' +
       'Нажми кнопку "☰ Меню" снизу, чтобы начать запись на тренировки →',
       {
@@ -204,7 +203,7 @@ bot.command('post_menu_button', async (ctx) => {
       }
     );
     
-    await bot.telegram.pinChatMessage('@skateclass', sentMessage.message_id, {
+    await bot.telegram.pinChatMessage(CHANNEL_ID, sentMessage.message_id, {
       disable_notification: true
     });
     
@@ -224,7 +223,7 @@ bot.command('setup_channel_button', async (ctx) => {
 
   try {
     await bot.telegram.setChatMenuButton({
-      chat_id: 1301102683,
+      chat_id: CHANNEL_ID,
       menu_button: {
         type: 'commands'
       }
