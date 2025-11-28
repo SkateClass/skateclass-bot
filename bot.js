@@ -1,11 +1,41 @@
 require('dotenv').config();
 const { Telegraf, session, Markup } = require('telegraf');
+const fs = require('fs');
+const path = require('path');
 
 const bot = new Telegraf(process.env.TELEGRAM_TOKEN);
 const ADMIN_ID = parseInt(process.env.ADMIN_ID);
 const CHANNEL_ID = 1301102683;
 
 bot.use(session());
+
+// ✅ ПРАВИЛЬНОЕ СОХРАНЕНИЕ ПОДПИСОК В ФАЙЛ
+const subscribersFile = path.join(__dirname, 'subscribers.json');
+
+function loadSubscribers() {
+  try {
+    if (fs.existsSync(subscribersFile)) {
+      const data = fs.readFileSync(subscribersFile, 'utf-8');
+      return JSON.parse(data);
+    }
+  } catch (error) {
+    console.error('❌ Ошибка при загрузке подписок:', error);
+  }
+  return [];
+}
+
+function saveSubscribers() {
+  try {
+    fs.writeFileSync(subscribersFile, JSON.stringify(subscribers, null, 2));
+    console.log(`✅ Подписки сохранены (${subscribers.length})`);
+  } catch (error) {
+    console.error('❌ Ошибка при сохранении подписок:', error);
+  }
+}
+
+// ✅ ЗАГРУЖАЕМ ПОДПИСКИ ПРИ СТАРТЕ
+let subscribers = loadSubscribers();
+console.log(`✅ Загружено подписчиков: ${subscribers.length}`);
 
 // ✅ ПРАВИЛЬНАЯ УСТАНОВКА КОМАНД - /admin видна только админу
 async function setAdminCommands() {
@@ -33,6 +63,7 @@ async function setAdminCommands() {
   }
 }
 
+
 const services = [
   { id: '1', name: 'Индивидуальные 60 мин', price: 3000, duration: 60 },
   { id: '2', name: 'Индивидуальные 90 мин', price: 4500, duration: 90 },
@@ -40,6 +71,7 @@ const services = [
   { id: '4', name: 'Групповое занятие 60 мин', price: 2000, duration: 60 },
   { id: '5', name: 'Групповой интенсив 120 мин', price: 4500, duration: 120 },
 ];
+
 
 const trainers = [
   {
@@ -60,10 +92,12 @@ const trainers = [
   },
 ];
 
+
 const locations = [
   { id: '1', name: 'Скейт-парк Севкабель (Вираж)' },
   { id: '2', name: 'Скейт-парк Жесть' },
 ];
+
 
 const skillLevels = [
   { id: '1', name: 'Начинающий' },
@@ -71,15 +105,17 @@ const skillLevels = [
   { id: '3', name: 'Опытный' },
 ];
 
+
 let bookings = [];
 let applications = [];
-let subscribers = [];
 let bookingCounter = 1000;
 let applicationCounter = 1;
+
 
 const mainMenuKeyboard = Markup.keyboard([
   ['☰ МЕНЮ', '☰ МЕНЮ'],
 ]).resize();
+
 
 const fullMenuKeyboard = Markup.inlineKeyboard([
   [Markup.button.callback('📝 Оставить заявку', 'app_start')],
@@ -91,6 +127,7 @@ const fullMenuKeyboard = Markup.inlineKeyboard([
   [Markup.button.callback('🔔 Отписаться от новостей', 'unsubscribe_newsletter')],
 ]);
 
+
 const adminMenuKeyboard = Markup.inlineKeyboard([
   [Markup.button.callback('📊 Статистика подписчиков', 'admin_stats')],
   [Markup.button.callback('📮 Отправить рассылку', 'admin_send_newsletter')],
@@ -98,6 +135,7 @@ const adminMenuKeyboard = Markup.inlineKeyboard([
   [Markup.button.callback('📋 Список заявок', 'admin_list_applications')],
   [Markup.button.callback('⬅️ Назад', 'back_menu')],
 ]);
+
 
 function formatPhoneNumber(phone) {
   let cleaned = phone.replace(/\D/g, '');
@@ -111,6 +149,7 @@ function formatPhoneNumber(phone) {
   return cleaned.replace(/^(\d)(\d{3})(\d{3})(\d{2})(\d{2})$/, '$1($2)$3-$4-$5');
 }
 
+
 async function showMainMenu(ctx) {
   await ctx.reply(
     '🛹 *SKATE CLASS*\n\n' +
@@ -119,6 +158,7 @@ async function showMainMenu(ctx) {
     { parse_mode: 'Markdown', ...fullMenuKeyboard }
   );
 }
+
 
 async function showAdminMenu(ctx) {
   const totalSubscribers = subscribers.length;
@@ -130,6 +170,7 @@ async function showAdminMenu(ctx) {
     { parse_mode: 'Markdown', ...adminMenuKeyboard }
   );
 }
+
 
 bot.start(async (ctx) => {
   try {
@@ -154,8 +195,10 @@ bot.start(async (ctx) => {
   }
 });
 
+
 bot.hears('☰ МЕНЮ', (ctx) => showMainMenu(ctx));
 bot.command('menu', (ctx) => showMainMenu(ctx));
+
 
 bot.command('admin', async (ctx) => {
   if (ctx.from.id !== ADMIN_ID) {
@@ -165,11 +208,13 @@ bot.command('admin', async (ctx) => {
   await showAdminMenu(ctx);
 });
 
+
 bot.command('join_channel', async (ctx) => {
   if (ctx.from.id !== ADMIN_ID) {
     await ctx.reply('❌ У вас нет доступа.');
     return;
   }
+
 
   try {
     await bot.telegram.sendMessage(
@@ -184,11 +229,13 @@ bot.command('join_channel', async (ctx) => {
   }
 });
 
+
 bot.command('post_menu_button', async (ctx) => {
   if (ctx.from.id !== ADMIN_ID) {
     await ctx.reply('❌ У вас нет доступа.');
     return;
   }
+
 
   try {
     const sentMessage = await bot.telegram.sendMessage(
@@ -215,11 +262,13 @@ bot.command('post_menu_button', async (ctx) => {
   }
 });
 
+
 bot.command('setup_channel_button', async (ctx) => {
   if (ctx.from.id !== ADMIN_ID) {
     await ctx.reply('❌ У вас нет доступа.');
     return;
   }
+
 
   try {
     await bot.telegram.setChatMenuButton({
@@ -236,8 +285,11 @@ bot.command('setup_channel_button', async (ctx) => {
   }
 });
 
+
 bot.help((ctx) => ctx.reply('🛹 *ПОМОЩЬ*\n\n/menu - Меню\n/admin - Админ\n/join_channel - Подключить бота\n/post_menu_button - Кнопка в канал\n/setup_channel_button - Меню канала\n/help - Справка', { parse_mode: 'Markdown' }));
 
+
+// ✅ ИСПРАВЛЕНО: ДОБАВЛЕНО СОХРАНЕНИЕ ПРИ ПОДПИСКЕ
 bot.action('subscribe_newsletter', async (ctx) => {
   await ctx.answerCbQuery();
   const subscriber = { userId: ctx.from.id, username: ctx.from.username || ctx.from.first_name, firstName: ctx.from.first_name, subscribedAt: new Date() };
@@ -246,12 +298,15 @@ bot.action('subscribe_newsletter', async (ctx) => {
     return;
   }
   subscribers.push(subscriber);
+  saveSubscribers(); // ✅ СОХРАНЯЕМ В ФАЙЛ!
   await ctx.reply('✅ *Спасибо за подписку!*\n\nМы будем присылать важные новости и анонсы!', { parse_mode: 'Markdown', ...Markup.inlineKeyboard([[Markup.button.url('💬 Написать нам', 'https://t.me/skateclass')]]) });
   try {
     await bot.telegram.sendMessage(ADMIN_ID, `📰 *НОВАЯ ПОДПИСКА!*\n\n👤 @${subscriber.username || subscriber.firstName}\n🆔 ${subscriber.userId}\n📅 ${subscriber.subscribedAt.toLocaleString('ru-RU')}\n\nВсего: ${subscribers.length}`, { parse_mode: 'Markdown' });
   } catch (e) { console.error(e); }
 });
 
+
+// ✅ ИСПРАВЛЕНО: ДОБАВЛЕНО СОХРАНЕНИЕ ПРИ ОТПИСКЕ
 bot.action('unsubscribe_newsletter', async (ctx) => {
   await ctx.answerCbQuery();
   if (!subscribers.find(s => s.userId === ctx.from.id)) {
@@ -259,25 +314,34 @@ bot.action('unsubscribe_newsletter', async (ctx) => {
     return;
   }
   subscribers = subscribers.filter(s => s.userId !== ctx.from.id);
+  saveSubscribers(); // ✅ СОХРАНЯЕМ В ФАЙЛ!
   await ctx.reply('✅ *Вы отписались от новостей!*', { parse_mode: 'Markdown' });
 });
 
+
+// ✅ ИСПРАВЛЕНО: ДОБАВЛЕНА КОНВЕРТАЦИЯ ДАТЫ
 bot.action('admin_stats', async (ctx) => {
   if (ctx.from.id !== ADMIN_ID) return ctx.answerCbQuery('❌ Доступ запрещен');
   await ctx.answerCbQuery();
-  const today = subscribers.filter(s => s.subscribedAt.toDateString() === new Date().toDateString()).length;
+  const today = subscribers.filter(s => new Date(s.subscribedAt).toDateString() === new Date().toDateString()).length;
   await ctx.reply(`📊 *СТАТИСТИКА*\n\n📈 Всего: ${subscribers.length}\n🆕 Сегодня: ${today}`, { parse_mode: 'Markdown', ...Markup.inlineKeyboard([[Markup.button.callback('⬅️ Назад', 'admin_back')]]) });
 });
 
+
+// ✅ ИСПРАВЛЕНО: ДОБАВЛЕНА КОНВЕРТАЦИЯ ДАТЫ
 bot.action('admin_list_subscribers', async (ctx) => {
   if (ctx.from.id !== ADMIN_ID) return ctx.answerCbQuery('❌ Доступ запрещен');
   await ctx.answerCbQuery();
   if (subscribers.length === 0) return ctx.reply('📭 Подписчиков нет.');
   let text = '👥 *СПИСОК ПОДПИСЧИКОВ*\n\n━━━━━━━━━━━━━━━━━━\n\n';
-  subscribers.forEach((s, i) => { text += `${i + 1}. @${s.username || s.firstName}\n   🆔 ${s.userId}\n   📅 ${s.subscribedAt.toLocaleDateString('ru-RU')}\n\n`; });
+  subscribers.forEach((s, i) => { 
+    const date = new Date(s.subscribedAt).toLocaleDateString('ru-RU');
+    text += `${i + 1}. @${s.username || s.firstName}\n   🆔 ${s.userId}\n   📅 ${date}\n\n`; 
+  });
   text += `━━━━━━━━━━━━━━━━━━\n\n📊 Всего: ${subscribers.length}`;
   await ctx.reply(text, { parse_mode: 'Markdown', ...Markup.inlineKeyboard([[Markup.button.callback('⬅️ Назад', 'admin_back')]]) });
 });
+
 
 bot.action('admin_send_newsletter', async (ctx) => {
   if (ctx.from.id !== ADMIN_ID) return ctx.answerCbQuery('❌ Доступ запрещен');
@@ -287,10 +351,12 @@ bot.action('admin_send_newsletter', async (ctx) => {
   await ctx.reply('📮 *РАССЫЛКА*\n\nНапишите текст сообщения:', { parse_mode: 'Markdown' });
 });
 
+
 bot.action('admin_back', async (ctx) => {
   await ctx.answerCbQuery();
   await showAdminMenu(ctx);
 });
+
 
 bot.action('admin_list_applications', async (ctx) => {
   if (ctx.from.id !== ADMIN_ID) return ctx.answerCbQuery('❌ Доступ запрещен');
@@ -321,15 +387,18 @@ bot.action('admin_list_applications', async (ctx) => {
   await ctx.reply(text, { parse_mode: 'Markdown', ...Markup.inlineKeyboard([[Markup.button.callback('⬅️ Назад', 'admin_back')]]) });
 });
 
+
 bot.on('text', async (ctx) => {
   const text = ctx.message.text;
   if (!ctx.session) ctx.session = {};
+
 
   if (ctx.from.id === ADMIN_ID && ctx.session.newsletter !== undefined && !ctx.session.newsletter.message) {
     ctx.session.newsletter.message = text;
     await ctx.reply('✅ Сохранено!\n\n📎 Введите ссылку (или напишите: нет)', { parse_mode: 'Markdown' });
     return;
   }
+
 
   if (ctx.from.id === ADMIN_ID && ctx.session.newsletter !== undefined && ctx.session.newsletter.message && !ctx.session.newsletter.link) {
     ctx.session.newsletter.link = text;
@@ -342,12 +411,14 @@ bot.on('text', async (ctx) => {
     return;
   }
 
+
   if (ctx.session.application !== undefined && !ctx.session.application.studentName) {
     if (text.length < 2) return ctx.reply('❌ Напишите корректное имя.');
     ctx.session.application.studentName = text;
     await ctx.reply('✅ Спасибо!\n\n🎂 *Теперь введите возраст ученика:*\n\n_Например: 12_', { parse_mode: 'Markdown' });
     return;
   }
+
 
   if (ctx.session.application !== undefined && !ctx.session.application.age) {
     const age = parseInt(text);
@@ -358,11 +429,13 @@ bot.on('text', async (ctx) => {
     return;
   }
 
+
   if (ctx.session.application !== undefined && ctx.session.application.skillLevel && !ctx.session.application.district) {
     ctx.session.application.district = text;
     await ctx.reply('✅ Спасибо!\n\n🎪 *Вас интересует участие в скейт кэмпах?*', { parse_mode: 'Markdown', ...Markup.inlineKeyboard([[Markup.button.callback('🎪 Да, интересует', 'camp_yes')], [Markup.button.callback('🏋️ Только тренировки', 'camp_no')]]) });
     return;
   }
+
 
   if (ctx.session.application !== undefined && ctx.session.application.camp && !ctx.session.application.phone) {
     if (text.length < 10) return ctx.reply('❌ Введите корректный номер.');
@@ -371,14 +444,17 @@ bot.on('text', async (ctx) => {
     return;
   }
 
+
   if (ctx.session.application !== undefined && ctx.session.application.phone && !ctx.session.application.comment) {
     ctx.session.application.comment = text;
     await ctx.reply('✅ Спасибо!\n\n📝 *Проверьте данные*', { parse_mode: 'Markdown', ...Markup.inlineKeyboard([[Markup.button.callback('✅ Отправить', 'confirm_application')], [Markup.button.callback('❌ Отмена', 'cancel_application_form')]]) });
     return;
   }
 
+
   await ctx.reply('❌ Команда не распознана.\n\nНажмите *"☰ МЕНЮ"*', { parse_mode: 'Markdown' });
 });
+
 
 bot.action(/^skill_(.+)$/, async (ctx) => {
   const skill = skillLevels.find(s => s.id === ctx.match[1]);
@@ -390,6 +466,7 @@ bot.action(/^skill_(.+)$/, async (ctx) => {
   await ctx.reply('📍 *Ваш район или ближайшая станция метро:*\n\n_Напишите район, где вам удобно заниматься_', { parse_mode: 'Markdown' });
 });
 
+
 bot.action(/^camp_(yes|no)$/, async (ctx) => {
   if (!ctx.session) ctx.session = {};
   ctx.session.application = ctx.session.application || {};
@@ -397,6 +474,7 @@ bot.action(/^camp_(yes|no)$/, async (ctx) => {
   await ctx.answerCbQuery('✅ Выбрано');
   await ctx.reply('📞 *Теперь введите номер телефона для связи:*\n\n_Например: +7 999 999 99 99_', { parse_mode: 'Markdown' });
 });
+
 
 bot.action('skip_comment', async (ctx) => {
   if (!ctx.session) ctx.session = {};
@@ -406,12 +484,14 @@ bot.action('skip_comment', async (ctx) => {
   sendApplication(ctx);
 });
 
+
 bot.action('app_start', async (ctx) => {
   await ctx.answerCbQuery();
   if (!ctx.session) ctx.session = {};
   ctx.session.application = { trainerType: 'general' };
   await ctx.reply('📝 *ОСТАВИТЬ ЗАЯВКУ*\n\n━━━━━━━━━━━━━━━━━━\n\nНапишите *имя ученика:*\n\n_Например: Максим_', { parse_mode: 'Markdown' });
 });
+
 
 bot.action('booking_start', async (ctx) => {
   await ctx.answerCbQuery();
@@ -421,14 +501,17 @@ bot.action('booking_start', async (ctx) => {
   await ctx.reply('📅 *ЗАПИСАТЬСЯ ПО РАСПИСАНИЮ*\n\n━━━━━━━━━━━━━━━━━━\n\n*Выберите услугу:*', { parse_mode: 'Markdown', ...Markup.inlineKeyboard(buttons.map(b => [b])) });
 });
 
+
 bot.action(/^trainer_booking_(.+)$/, async (ctx) => {
   const trainerId = ctx.match[1];
   const trainer = trainers.find(t => t.id === trainerId);
+
 
   if (!trainer) {
     await ctx.answerCbQuery('❌ Тренер не найден');
     return;
   }
+
 
   if (!ctx.session) ctx.session = {};
   ctx.session.application = {
@@ -437,7 +520,9 @@ bot.action(/^trainer_booking_(.+)$/, async (ctx) => {
     trainerType: 'specific'
   };
 
+
   await ctx.answerCbQuery();
+
 
   await ctx.reply(
     '📝 *ОСТАВИТЬ ЗАЯВКУ*\n\n' +
@@ -448,6 +533,7 @@ bot.action(/^trainer_booking_(.+)$/, async (ctx) => {
   );
 });
 
+
 bot.action('show_trainers', async (ctx) => {
   await ctx.answerCbQuery();
   let text = '👨‍🏫 *НАШИ ТРЕНЕРЫ*\n\n━━━━━━━━━━━━━━━━━\n\n';
@@ -455,6 +541,7 @@ bot.action('show_trainers', async (ctx) => {
   const buttons = trainers.map(t => Markup.button.callback(t.buttonText, `trainer_booking_${t.id}`));
   await ctx.reply(text, { parse_mode: 'Markdown', ...Markup.inlineKeyboard(buttons.map(b => [b])) });
 });
+
 
 bot.action('my_bookings', async (ctx) => {
   await ctx.answerCbQuery();
@@ -465,6 +552,7 @@ bot.action('my_bookings', async (ctx) => {
   const buttons = userBookings.map(b => Markup.button.callback(`❌ #${b.id}`, `cancel_booking_${b.id}`));
   await ctx.reply(text, { parse_mode: 'Markdown', ...Markup.inlineKeyboard(buttons.map(b => [b])) });
 });
+
 
 bot.action(/^service_(.+)$/, async (ctx) => {
   const service = services.find(s => s.id === ctx.match[1]);
@@ -479,6 +567,7 @@ bot.action(/^service_(.+)$/, async (ctx) => {
   await ctx.reply('*Выберите локацию:*', { parse_mode: 'Markdown', ...Markup.inlineKeyboard(buttons.map(b => [b])) });
 });
 
+
 bot.action(/^location_(.+)$/, async (ctx) => {
   const location = locations.find(l => l.id === ctx.match[1]);
   if (!location) return ctx.answerCbQuery('❌ Не найдено');
@@ -491,6 +580,7 @@ bot.action(/^location_(.+)$/, async (ctx) => {
   await ctx.reply('*Выберите тренера:*', { parse_mode: 'Markdown', ...Markup.inlineKeyboard(buttons.map(b => [b])) });
 });
 
+
 bot.action(/^trainer_(.+)$/, async (ctx) => {
   const trainer = trainers.find(t => t.id === ctx.match[1]);
   if (!trainer) return ctx.answerCbQuery('❌ Не найдено');
@@ -502,6 +592,7 @@ bot.action(/^trainer_(.+)$/, async (ctx) => {
   await ctx.reply('📅 *Выберите дату* (ДД.MM.ГГГГ)\n\n_Например: 05.02.2025_', { parse_mode: 'Markdown' });
 });
 
+
 bot.action(/^cancel_booking_(.+)$/, async (ctx) => {
   const booking = bookings.find(b => b.id === ctx.match[1]);
   if (!booking) return ctx.answerCbQuery('❌ Не найдено');
@@ -509,6 +600,7 @@ bot.action(/^cancel_booking_(.+)$/, async (ctx) => {
   await ctx.answerCbQuery('✅ Отменено');
   await ctx.reply(`✅ *Запись #${booking.id} отменена!*`, { parse_mode: 'Markdown' });
 });
+
 
 bot.action('confirm_booking', async (ctx) => {
   if (!ctx.session) ctx.session = {};
@@ -520,11 +612,13 @@ bot.action('confirm_booking', async (ctx) => {
   ctx.session.booking = {};
 });
 
+
 bot.action('cancel_booking_form', async (ctx) => {
   await ctx.answerCbQuery();
   ctx.session.booking = {};
   await showMainMenu(ctx);
 });
+
 
 bot.action('confirm_newsletter', async (ctx) => {
   if (ctx.from.id !== ADMIN_ID) return ctx.answerCbQuery('❌ Доступ запрещен');
@@ -545,6 +639,7 @@ bot.action('confirm_newsletter', async (ctx) => {
   await showAdminMenu(ctx);
 });
 
+
 bot.action('cancel_newsletter', async (ctx) => {
   if (ctx.from.id !== ADMIN_ID) return ctx.answerCbQuery('❌ Доступ запрещен');
   await ctx.answerCbQuery('❌ Отменено');
@@ -552,16 +647,19 @@ bot.action('cancel_newsletter', async (ctx) => {
   await showAdminMenu(ctx);
 });
 
+
 bot.action('cancel_application_form', async (ctx) => {
   await ctx.answerCbQuery();
   ctx.session.application = {};
   await showMainMenu(ctx);
 });
 
+
 bot.action('confirm_application', async (ctx) => {
   await ctx.answerCbQuery();
   sendApplication(ctx);
 });
+
 
 // ✅ ОТПРАВКА ТОЛЬКО АДМИНУ
 async function sendApplication(ctx) {
@@ -596,21 +694,28 @@ async function sendApplication(ctx) {
   ctx.session.application = {};
 }
 
+
 bot.action('back_menu', async (ctx) => {
   await ctx.answerCbQuery();
   await showMainMenu(ctx);
 });
 
+
 bot.launch();
 
+
 setAdminCommands();
+
 
 console.log('✅ БОТ ЗАПУЩЕН!');
 console.log('✅ Admin ID:', ADMIN_ID);
 console.log('📌 /start');
 console.log('⚠️  ЗАЯВКИ ОТПРАВЛЯЮТСЯ ТОЛЬКО АДМИНУ!');
+console.log('📁 Подписки сохраняются в файл: subscribers.json');
+
 
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));
+
 
 module.exports = bot;
