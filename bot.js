@@ -120,9 +120,9 @@ const mainMenuKeyboard = Markup.keyboard([
 const fullMenuKeyboard = Markup.inlineKeyboard([
   [Markup.button.callback('📝 Оставить заявку', 'app_start')],
   [Markup.button.callback('👨‍🏫 Тренеры', 'show_trainers')],
+  [Markup.button.callback('🏕️ Информация о лагере', 'camp_inquiry')],
   [Markup.button.url('💬 Написать нам', 'https://t.me/skateclass')],
   [Markup.button.url('🌐 Сайт Скейт Класс', 'https://sk8class.ru')],
-  [Markup.button.url('🎪 Зимний скейт кэмп в Питере', 'https://sk8class.ru/skatecamp')],
   [Markup.button.callback('📰 Подписаться на новости', 'subscribe_newsletter')],
   [Markup.button.callback('🔔 Отписаться от новостей', 'unsubscribe_newsletter')],
 ]);
@@ -215,7 +215,6 @@ bot.command('join_channel', async (ctx) => {
     return;
   }
 
-
   try {
     await bot.telegram.sendMessage(
       CHANNEL_ID,
@@ -235,7 +234,6 @@ bot.command('post_menu_button', async (ctx) => {
     await ctx.reply('❌ У вас нет доступа.');
     return;
   }
-
 
   try {
     const sentMessage = await bot.telegram.sendMessage(
@@ -268,7 +266,6 @@ bot.command('setup_channel_button', async (ctx) => {
     await ctx.reply('❌ У вас нет доступа.');
     return;
   }
-
 
   try {
     await bot.telegram.setChatMenuButton({
@@ -392,13 +389,11 @@ bot.on('text', async (ctx) => {
   const text = ctx.message.text;
   if (!ctx.session) ctx.session = {};
 
-
   if (ctx.from.id === ADMIN_ID && ctx.session.newsletter !== undefined && !ctx.session.newsletter.message) {
     ctx.session.newsletter.message = text;
     await ctx.reply('✅ Сохранено!\n\n📎 Введите ссылку (или напишите: нет)', { parse_mode: 'Markdown' });
     return;
   }
-
 
   if (ctx.from.id === ADMIN_ID && ctx.session.newsletter !== undefined && ctx.session.newsletter.message && !ctx.session.newsletter.link) {
     ctx.session.newsletter.link = text;
@@ -411,14 +406,12 @@ bot.on('text', async (ctx) => {
     return;
   }
 
-
   if (ctx.session.application !== undefined && !ctx.session.application.studentName) {
     if (text.length < 2) return ctx.reply('❌ Напишите корректное имя.');
     ctx.session.application.studentName = text;
     await ctx.reply('✅ Спасибо!\n\n🎂 *Теперь введите возраст ученика:*\n\n_Например: 12_', { parse_mode: 'Markdown' });
     return;
   }
-
 
   if (ctx.session.application !== undefined && !ctx.session.application.age) {
     const age = parseInt(text);
@@ -429,13 +422,11 @@ bot.on('text', async (ctx) => {
     return;
   }
 
-
   if (ctx.session.application !== undefined && ctx.session.application.skillLevel && !ctx.session.application.district) {
     ctx.session.application.district = text;
     await ctx.reply('✅ Спасибо!\n\n🎪 *Вас интересует участие в скейт кэмпах?*', { parse_mode: 'Markdown', ...Markup.inlineKeyboard([[Markup.button.callback('🎪 Да, интересует', 'camp_yes')], [Markup.button.callback('🏋️ Только тренировки', 'camp_no')]]) });
     return;
   }
-
 
   if (ctx.session.application !== undefined && ctx.session.application.camp && !ctx.session.application.phone) {
     if (text.length < 10) return ctx.reply('❌ Введите корректный номер.');
@@ -444,13 +435,11 @@ bot.on('text', async (ctx) => {
     return;
   }
 
-
   if (ctx.session.application !== undefined && ctx.session.application.phone && !ctx.session.application.comment) {
     ctx.session.application.comment = text;
     await ctx.reply('✅ Спасибо!\n\n📝 *Проверьте данные*', { parse_mode: 'Markdown', ...Markup.inlineKeyboard([[Markup.button.callback('✅ Отправить', 'confirm_application')], [Markup.button.callback('❌ Отмена', 'cancel_application_form')]]) });
     return;
   }
-
 
   await ctx.reply('❌ Команда не распознана.\n\nНажмите *"☰ МЕНЮ"*', { parse_mode: 'Markdown' });
 });
@@ -506,12 +495,10 @@ bot.action(/^trainer_booking_(.+)$/, async (ctx) => {
   const trainerId = ctx.match[1];
   const trainer = trainers.find(t => t.id === trainerId);
 
-
   if (!trainer) {
     await ctx.answerCbQuery('❌ Тренер не найден');
     return;
   }
-
 
   if (!ctx.session) ctx.session = {};
   ctx.session.application = {
@@ -520,9 +507,7 @@ bot.action(/^trainer_booking_(.+)$/, async (ctx) => {
     trainerType: 'specific'
   };
 
-
   await ctx.answerCbQuery();
-
 
   await ctx.reply(
     '📝 *ОСТАВИТЬ ЗАЯВКУ*\n\n' +
@@ -540,6 +525,25 @@ bot.action('show_trainers', async (ctx) => {
   trainers.forEach(t => { text += `🏆 *${t.name}*\n📍 ${t.title}\n\n${t.description}\n\n━━━━━━━━━━━━━━━━━\n\n`; });
   const buttons = trainers.map(t => Markup.button.callback(t.buttonText, `trainer_booking_${t.id}`));
   await ctx.reply(text, { parse_mode: 'Markdown', ...Markup.inlineKeyboard(buttons.map(b => [b])) });
+});
+
+
+// 🏕️ НОВАЯ КНОПКА ЛАГЕРЯ
+bot.action('camp_inquiry', async (ctx) => {
+  await ctx.answerCbQuery();
+  
+  const campMessage = `Спасибо за интерес к нашему скейт-лагерю! 🏕️
+
+В ближайшее время мы поделимся с вами подробностями о предстоящем скейт кэмпе.
+
+Нажми кнопку ниже, чтобы связаться с администратором 👇`;
+  
+  await ctx.reply(campMessage, {
+    parse_mode: 'Markdown',
+    ...Markup.inlineKeyboard([
+      [Markup.button.url('🏕️ Оставить заявку в лагерь', 'https://t.me/sk8class')]
+    ])
+  });
 });
 
 
@@ -703,19 +707,14 @@ bot.action('back_menu', async (ctx) => {
 
 bot.launch();
 
-
 setAdminCommands();
-
 
 console.log('✅ БОТ ЗАПУЩЕН!');
 console.log('✅ Admin ID:', ADMIN_ID);
-console.log('📌 /start');
 console.log('⚠️  ЗАЯВКИ ОТПРАВЛЯЮТСЯ ТОЛЬКО АДМИНУ!');
 console.log('📁 Подписки сохраняются в файл: subscribers.json');
 
-
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));
-
 
 module.exports = bot;
